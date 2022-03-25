@@ -2,10 +2,12 @@ package batch.example.data;
 
 import batch.example.listener.FirstJobListener;
 import batch.example.listener.FirstStepListener;
+import batch.example.model.StudentCsv;
 import batch.example.processor.FirstItemProcessor;
 import batch.example.reader.FirstItemReader;
 import batch.example.service.SecondTasklet;
 import batch.example.writer.FirstItemWriter;
+import batch.example.writer.SecondItemWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
@@ -14,9 +16,17 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
+import org.springframework.batch.item.file.mapping.DefaultLineMapper;
+import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.file.transform.LineTokenizer;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.FileSystemResource;
+
+import java.io.File;
 
 @Configuration
 public class SampleBatch {
@@ -29,8 +39,9 @@ public class SampleBatch {
     private final FirstItemReader firstItemReader;
     private final FirstItemProcessor firstItemProcessor;
     private final FirstItemWriter firstItemWriter;
+    private final SecondItemWriter secondItemWriter;
 
-    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter) {
+    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.secondTasklet = secondTasklet;
@@ -39,6 +50,7 @@ public class SampleBatch {
         this.firstItemReader = firstItemReader;
         this.firstItemProcessor = firstItemProcessor;
         this.firstItemWriter = firstItemWriter;
+        this.secondItemWriter = secondItemWriter;
     }
 
     @Bean
@@ -55,7 +67,7 @@ public class SampleBatch {
     public Job secondJob() {
         return jobBuilderFactory.get("Second Job")
                                 .incrementer(new RunIdIncrementer())
-                                .start(firstChunkStep())
+                                .start(secondChunkStep())
                                 .build();
     }
 
@@ -92,5 +104,35 @@ public class SampleBatch {
                                  .processor(firstItemProcessor)
                                  .writer(firstItemWriter)
                                  .build();
+    }
+
+    private Step secondChunkStep() {
+        return stepBuilderFactory.get("Second Chunk Step")
+                                 .<StudentCsv, StudentCsv>chunk(3)
+                                 .reader(flatFileItemReader())
+                                 .writer(secondItemWriter)
+                                 .build();
+    }
+
+    public FlatFileItemReader<StudentCsv> flatFileItemReader() {
+        FlatFileItemReader<StudentCsv> reader = new FlatFileItemReader<>();
+        reader.setResource(new FileSystemResource(new File("InputFiles/students.csv")));
+        reader.setLinesToSkip(1);
+        reader.setLineMapper(new DefaultLineMapper() {
+            {
+                setLineTokenizer(new DelimitedLineTokenizer() {
+                    {
+                        setNames(new String[]{"ID", "First name", "Last name", "Email"});
+                    }
+                });
+                setFieldSetMapper(new BeanWrapperFieldSetMapper<StudentCsv>() {
+                    {
+                        setTargetType(StudentCsv.class);
+                    }
+                });
+            }
+        });
+
+        return reader;
     }
 }
