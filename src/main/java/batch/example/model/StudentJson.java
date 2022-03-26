@@ -2,7 +2,7 @@ package batch.example.model;
 
 import java.io.Serializable;
 
-public class StudentCsv implements Serializable {
+public class StudentJson implements Serializable {
     private Long id;
     private String firstName;
     private String lastName;
@@ -42,7 +42,7 @@ public class StudentCsv implements Serializable {
 
     @Override
     public String toString() {
-        return "StudentCsv{" +
+        return "StudentJson{" +
                 "id=" + id +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
