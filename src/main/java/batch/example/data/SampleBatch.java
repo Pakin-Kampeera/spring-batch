@@ -3,11 +3,15 @@ package batch.example.data;
 import batch.example.listener.FirstJobListener;
 import batch.example.listener.FirstStepListener;
 import batch.example.model.StudentCsv;
+import batch.example.model.StudentJson;
+import batch.example.model.StudentXml;
 import batch.example.processor.FirstItemProcessor;
 import batch.example.reader.FirstItemReader;
 import batch.example.service.SecondTasklet;
 import batch.example.writer.FirstItemWriter;
+import batch.example.writer.FourthItemWriter;
 import batch.example.writer.SecondItemWriter;
+import batch.example.writer.ThirdItemWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
@@ -21,11 +25,15 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.json.JacksonJsonObjectReader;
+import org.springframework.batch.item.json.JsonItemReader;
+import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
 @Configuration
 public class SampleBatch {
@@ -39,8 +47,10 @@ public class SampleBatch {
     private final FirstItemProcessor firstItemProcessor;
     private final FirstItemWriter firstItemWriter;
     private final SecondItemWriter secondItemWriter;
+    private final ThirdItemWriter thirdItemWriter;
+    private final FourthItemWriter fourthItemWriter;
 
-    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter) {
+    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.secondTasklet = secondTasklet;
@@ -50,6 +60,8 @@ public class SampleBatch {
         this.firstItemProcessor = firstItemProcessor;
         this.firstItemWriter = firstItemWriter;
         this.secondItemWriter = secondItemWriter;
+        this.thirdItemWriter = thirdItemWriter;
+        this.fourthItemWriter = fourthItemWriter;
     }
 
     @Bean
@@ -107,9 +119,11 @@ public class SampleBatch {
 
     private Step secondChunkStep() {
         return stepBuilderFactory.get("Second Chunk Step")
-                                 .<StudentCsv, StudentCsv>chunk(3)
-                                 .reader(flatFileItemReader(null))
-                                 .writer(secondItemWriter)
+                                 .<StudentXml, StudentXml>chunk(3)
+//                                 .reader(flatFileItemReader(null))
+//                                 .reader(jsonItemReader(null))
+                                 .reader(studentXmlStaxEventItemReader(null))
+                                 .writer(fourthItemWriter)
                                  .build();
     }
 
@@ -117,7 +131,7 @@ public class SampleBatch {
     @StepScope
     public FlatFileItemReader<StudentCsv> flatFileItemReader(
             @Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource
-            ) {
+    ) {
         System.out.println(fileSystemResource);
         FlatFileItemReader<StudentCsv> reader = new FlatFileItemReader<>();
         reader.setResource(fileSystemResource);
@@ -149,5 +163,35 @@ public class SampleBatch {
 //            }
 //        });
         return reader;
+    }
+
+    @StepScope
+    @Bean
+    public JsonItemReader<StudentJson> jsonItemReader(
+            @Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource
+    ) {
+        System.out.println(fileSystemResource);
+        JsonItemReader<StudentJson> jsonItemReader = new JsonItemReader<>();
+        jsonItemReader.setResource(fileSystemResource);
+        jsonItemReader.setJsonObjectReader(new JacksonJsonObjectReader<>(StudentJson.class));
+        jsonItemReader.setCurrentItemCount(1);
+        jsonItemReader.setMaxItemCount(8);
+        return jsonItemReader;
+    }
+
+    @StepScope
+    @Bean
+    public StaxEventItemReader<StudentXml> studentXmlStaxEventItemReader(
+            @Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource
+    ) {
+        StaxEventItemReader<StudentXml> staxEventItemReader = new StaxEventItemReader<>();
+        staxEventItemReader.setResource(fileSystemResource);
+        staxEventItemReader.setFragmentRootElementName("student");
+
+        Jaxb2Marshaller jaxb2Marshaller = new Jaxb2Marshaller();
+        jaxb2Marshaller.setClassesToBeBound(StudentXml.class);
+
+        staxEventItemReader.setUnmarshaller(jaxb2Marshaller);
+        return staxEventItemReader;
     }
 }
