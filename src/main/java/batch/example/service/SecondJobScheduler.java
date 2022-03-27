@@ -1,5 +1,6 @@
 package batch.example.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameter;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class SecondJobScheduler {
     private final JobLauncher jobLauncher;
@@ -31,9 +33,9 @@ public class SecondJobScheduler {
 
         try {
             JobExecution jobExecution = jobLauncher.run(secondJob, jobParameters);
-            System.out.println("Job execution ID: " + jobExecution.getId());
+            log.info("Job execution ID: " + jobExecution.getId());
         } catch (Exception e) {
-            System.out.println("Exception while starting job...");
+            log.error("Exception while starting job...");
         }
     }
 }

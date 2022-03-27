@@ -1,5 +1,6 @@
 package batch.example.reader;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.NonTransientResourceException;
 import org.springframework.batch.item.ParseException;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Component
 public class FirstItemReader implements ItemReader<Integer> {
     List<Integer> list = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
@@ -16,7 +18,7 @@ public class FirstItemReader implements ItemReader<Integer> {
 
     @Override
     public Integer read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-        System.out.println("Inside Item reader");
+        log.info("Inside Item reader");
         Integer item;
         if (i < list.size()) {
             item = list.get(i);

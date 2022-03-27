@@ -1,6 +1,7 @@
 package batch.example.service;
 
 import batch.example.request.JobParamsRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class JobService {
 
@@ -44,9 +46,9 @@ public class JobService {
             } else if (jobName.equals("Second Job")) {
                 jobExecution = jobLauncher.run(secondJob, jobParameters);
             }
-            System.out.println("Job execution ID: " + jobExecution.getId());
+            log.info("Job execution ID: " + jobExecution.getId());
         } catch (Exception e) {
-            System.out.println("Exception while starting job...");
+            log.error("Exception while starting job...");
         }
     }
 }
