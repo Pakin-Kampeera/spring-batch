@@ -10,18 +10,17 @@ import javax.sql.DataSource;
 
 @Configuration
 public class DatabaseConfig {
-
     @Bean
     @Primary
     @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource datasource() {
+    public DataSource dataSource() {
         return DataSourceBuilder.create()
                                 .build();
     }
 
     @Bean
     @ConfigurationProperties(prefix = "spring.universitydatasource")
-    public DataSource universitydatasource() {
+    public DataSource universityDataSource() {
         return DataSourceBuilder.create()
                                 .build();
     }

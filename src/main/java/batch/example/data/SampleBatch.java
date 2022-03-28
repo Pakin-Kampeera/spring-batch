@@ -12,7 +12,6 @@ import batch.example.response.StudentResponse;
 import batch.example.service.SecondTasklet;
 import batch.example.service.StudentService;
 import batch.example.writer.*;
-import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
@@ -63,10 +62,8 @@ public class SampleBatch {
     private final SixItemWriter sixItemWriter;
     private final StudentService studentService;
     private final DataSource dataSource;
-//    private final DataSource primaryDatasource;
-//    private final DataSource universityDataSource;
 
-    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, HikariDataSource dataSource) {
+    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, DataSource dataSource) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.secondTasklet = secondTasklet;
@@ -214,7 +211,7 @@ public class SampleBatch {
     public JdbcCursorItemReader<StudentJdbc> jdbcJdbcCursorItemReader() {
         JdbcCursorItemReader<StudentJdbc> jdbcJdbcCursorItemReader = new JdbcCursorItemReader<>();
         jdbcJdbcCursorItemReader.setDataSource(dataSource);
-        jdbcJdbcCursorItemReader.setSql("select id, first_name as FirstName, last_name as LastName, email from student");
+        jdbcJdbcCursorItemReader.setSql("select id, first_name as firstName, last_name as lastName, email from student");
         jdbcJdbcCursorItemReader.setRowMapper(new BeanPropertyRowMapper<>(StudentJdbc.class));
         return jdbcJdbcCursorItemReader;
     }
@@ -231,15 +228,15 @@ public class SampleBatch {
     public FlatFileItemWriter<StudentJdbc> flatFileItemWriter(@Value("#{jobParameters['outputFile']}") FileSystemResource fileSystemResource) {
         FlatFileItemWriter<StudentJdbc> flatFileItemWriter = new FlatFileItemWriter<>();
         flatFileItemWriter.setResource(fileSystemResource);
-        flatFileItemWriter.setHeaderCallback(writer -> writer.write("Id, FirstName, LastName, Email"));
+        flatFileItemWriter.setHeaderCallback(writer -> writer.write("Id,FirstName,LastName,Email"));
 
         BeanWrapperFieldExtractor beanWrapperFieldExtractor = new BeanWrapperFieldExtractor<>();
-        beanWrapperFieldExtractor.setNames(new String[]{"Id", "FirstName", "LastName", "Email"});
+        beanWrapperFieldExtractor.setNames(new String[]{"Id", "firstName", "lastName", "email"});
 
         DelimitedLineAggregator<StudentJdbc> delimitedLineAggregator = new DelimitedLineAggregator<>();
         delimitedLineAggregator.setFieldExtractor(beanWrapperFieldExtractor);
 
-        flatFileItemWriter.setLineAggregator(new DelimitedLineAggregator<>());
+        flatFileItemWriter.setLineAggregator(delimitedLineAggregator);
         flatFileItemWriter.setFooterCallback(writer -> writer.write("Created @ " + new Date()));
         return flatFileItemWriter;
     }
