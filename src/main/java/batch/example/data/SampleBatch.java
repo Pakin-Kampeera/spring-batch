@@ -24,8 +24,11 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.adapter.ItemReaderAdapter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
+import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
+import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.batch.item.json.JacksonJsonObjectReader;
 import org.springframework.batch.item.json.JsonItemReader;
@@ -39,6 +42,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
 import javax.sql.DataSource;
+import java.util.Date;
 
 @Configuration
 public class SampleBatch {
@@ -147,13 +151,13 @@ public class SampleBatch {
 
     private Step secondChunkStep() {
         return stepBuilderFactory.get("Second Chunk Step")
-                                 .<StudentResponse, StudentResponse>chunk(3)
+                                 .<StudentJdbc, StudentJdbc>chunk(3)
 //                                 .reader(flatFileItemReader(null))
 //                                 .reader(jsonItemReader(null))
 //                                 .reader(studentXmlStaxEventItemReader(null))
 //                                 .reader(jdbcJdbcCursorItemReader())
-                                 .reader(itemReaderAdapter())
-                                 .writer(sixItemWriter)
+                                 .reader(jdbcJdbcCursorItemReader())
+                                 .writer(flatFileItemWriter(null))
                                  .build();
     }
 
@@ -222,7 +226,7 @@ public class SampleBatch {
     public JdbcCursorItemReader<StudentJdbc> jdbcJdbcCursorItemReader() {
         JdbcCursorItemReader<StudentJdbc> jdbcJdbcCursorItemReader = new JdbcCursorItemReader<>();
         jdbcJdbcCursorItemReader.setDataSource(dataSource);
-        jdbcJdbcCursorItemReader.setSql("select id, first_name, last_name, email from student");
+        jdbcJdbcCursorItemReader.setSql("select id, first_name as firstName, last_name as lastName, email from student");
         jdbcJdbcCursorItemReader.setRowMapper(new BeanPropertyRowMapper<>(StudentJdbc.class));
         return jdbcJdbcCursorItemReader;
     }
@@ -232,5 +236,23 @@ public class SampleBatch {
         itemReaderAdapter.setTargetObject(studentService);
         itemReaderAdapter.setTargetMethod("getStudent");
         return itemReaderAdapter;
+    }
+
+    @Bean
+    @StepScope
+    public FlatFileItemWriter<StudentJdbc> flatFileItemWriter(@Value("#{jobParameters['outputFile']}") FileSystemResource fileSystemResource) {
+        FlatFileItemWriter<StudentJdbc> flatFileItemWriter = new FlatFileItemWriter<>();
+        flatFileItemWriter.setResource(fileSystemResource);
+        flatFileItemWriter.setHeaderCallback(writer -> writer.write("Id,FirstName,LastName,Email"));
+
+        BeanWrapperFieldExtractor beanWrapperFieldExtractor = new BeanWrapperFieldExtractor<>();
+        beanWrapperFieldExtractor.setNames(new String[]{"Id", "firstName", "lastName", "email"});
+
+        DelimitedLineAggregator<StudentJdbc> delimitedLineAggregator = new DelimitedLineAggregator<>();
+        delimitedLineAggregator.setFieldExtractor(beanWrapperFieldExtractor);
+
+        flatFileItemWriter.setLineAggregator(delimitedLineAggregator);
+        flatFileItemWriter.setFooterCallback(writer -> writer.write("Created @ " + new Date()));
+        return flatFileItemWriter;
     }
 }
