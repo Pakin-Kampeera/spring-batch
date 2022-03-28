@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableBatchProcessing
 @EnableAsync
 @EnableScheduling
-@ComponentScan({"batch.example.data", "batch.example.service", "batch.example.listener", "batch.example.reader", "batch.example.processor", "batch.example.writer", "batch.example.controller", "batch.example.config"})
+@ComponentScan({"batch.example.data", "batch.example.service", "batch.example.listener", "batch.example.reader", "batch.example.processor", "batch.example.writer", "batch.example.controller"})
 public class SpringBatchApplication {
 
     public static void main(String[] args) {

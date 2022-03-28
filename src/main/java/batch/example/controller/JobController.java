@@ -2,6 +2,7 @@ package batch.example.controller;
 
 import batch.example.request.JobParamsRequest;
 import batch.example.service.JobService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobExecutionNotRunningException;
 import org.springframework.batch.core.launch.JobOperator;
@@ -10,8 +11,10 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/job")
 public class JobController {
@@ -26,7 +29,7 @@ public class JobController {
 
     @GetMapping("/start/{jobName}")
     public String startJob(@PathVariable("jobName") String jobName, @RequestBody List<JobParamsRequest> jobParamsRequests) throws JobInstanceAlreadyCompleteException, JobExecutionAlreadyRunningException, JobParametersInvalidException, JobRestartException {
-        System.out.println(jobParamsRequests.toString());
+        log.info(jobParamsRequests.toString());
         jobService.startJob(jobName, jobParamsRequests);
         return "Job starting...";
     }
