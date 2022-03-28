@@ -81,21 +81,6 @@ public class SampleBatch {
         this.dataSource = dataSource;
     }
 
-    //    @Bean
-//    @Primary
-//    @ConfigurationProperties(prefix = "spring.datasource")
-//    public DataSource dataSource() {
-//        return DataSourceBuilder.create()
-//                                .build();
-//    }
-//
-//    @Bean
-//    @ConfigurationProperties(prefix = "spring.universitydatasource")
-//    public DataSource universityDataSource() {
-//        return DataSourceBuilder.create()
-//                                .build();
-//    }
-
     @Bean
     public Job firstJob() {
         return jobBuilderFactory.get("First Job")
