@@ -19,8 +19,8 @@ public class StudentService {
     private List<StudentResponse> studentArrays;
 
     public List<StudentResponse> restCallToGetStudents() {
-        RestTemplate restTemplate = new RestTemplate();
         log.info("Calling " + studentUrl);
+        RestTemplate restTemplate = new RestTemplate();
         StudentResponse[] students = restTemplate.getForObject(studentUrl, StudentResponse[].class);
         studentArrays = Arrays.stream(students)
                               .collect(Collectors.toList());
