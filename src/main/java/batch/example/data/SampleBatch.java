@@ -31,6 +31,7 @@ import org.springframework.batch.item.json.JacksonJsonObjectReader;
 import org.springframework.batch.item.json.JsonItemReader;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,8 +59,10 @@ public class SampleBatch {
     private final SixItemWriter sixItemWriter;
     private final StudentService studentService;
     private final DataSource dataSource;
+    private final DataSource primaryDatasource;
+    private final DataSource universityDataSource;
 
-    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, DataSource dataSource) {
+    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, DataSource dataSource, @Qualifier("datasource") DataSource primaryDatasource, @Qualifier("universitydatasource") DataSource universityDataSource) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.secondTasklet = secondTasklet;
@@ -75,22 +78,9 @@ public class SampleBatch {
         this.sixItemWriter = sixItemWriter;
         this.studentService = studentService;
         this.dataSource = dataSource;
+        this.primaryDatasource = primaryDatasource;
+        this.universityDataSource = universityDataSource;
     }
-
-    //    @Bean
-//    @Primary
-//    @ConfigurationProperties(prefix = "spring.datasource")
-//    public DataSource dataSource() {
-//        return DataSourceBuilder.create()
-//                                .build();
-//    }
-//
-//    @Bean
-//    @ConfigurationProperties(prefix = "spring.universitydatasource")
-//    public DataSource universityDataSource() {
-//        return DataSourceBuilder.create()
-//                                .build();
-//    }
 
     @Bean
     public Job firstJob() {
