@@ -23,6 +23,7 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.adapter.ItemReaderAdapter;
+import org.springframework.batch.item.adapter.ItemWriterAdapter;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
@@ -48,7 +49,6 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
 import javax.sql.DataSource;
-import javax.xml.stream.XMLStreamException;
 import java.util.Date;
 
 @Configuration
@@ -145,7 +145,7 @@ public class SampleBatch {
 
     private Step secondChunkStep() {
         return stepBuilderFactory.get("Second Chunk Step")
-                                 .<StudentCsv, StudentCsv>chunk(3)
+                                 .<StudentCsv, StudentResponse>chunk(3)
                                  .reader(flatFileItemReader(null))
 //                                 .reader(jsonItemReader(null))
 //                                 .reader(studentXmlStaxEventItemReader(null))
@@ -154,7 +154,9 @@ public class SampleBatch {
 //                                 .processor(secondItemProcessor)
 //                                 .writer(flatFileItemWriter(null))
 //                                 .writer(staxEventItemWriter(null))
-                                 .writer(jdbcBatchItemWriter())
+//                                 .writer(jdbcBatchItemWriter())
+//                                 .writer(jdbcBatchItemWriter1())
+                                 .writer(itemWriterAdapter())
                                  .build();
     }
 
@@ -265,5 +267,26 @@ public class SampleBatch {
         jdbcBatchItemWriter.setSql("insert into student(id, first_name, last_name, email) values (:id, :firstName, :lastName, :email)");
         jdbcBatchItemWriter.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
         return jdbcBatchItemWriter;
+    }
+
+    @Bean
+    public JdbcBatchItemWriter<StudentCsv> jdbcBatchItemWriter1() {
+        JdbcBatchItemWriter<StudentCsv> jdbcBatchItemWriter = new JdbcBatchItemWriter<>();
+        jdbcBatchItemWriter.setDataSource(dataSource);
+        jdbcBatchItemWriter.setSql("insert into student(id, first_name, last_name, email) values (?,?,?,?)");
+        jdbcBatchItemWriter.setItemPreparedStatementSetter((item, ps) -> {
+            ps.setLong(1, item.getId());
+            ps.setString(2, item.getFirstName());
+            ps.setString(3, item.getLastName());
+            ps.setString(4, item.getEmail());
+        });
+        return jdbcBatchItemWriter;
+    }
+
+    public ItemWriterAdapter<StudentResponse> itemWriterAdapter() {
+        ItemWriterAdapter<StudentResponse> itemWriterAdapter = new ItemWriterAdapter<>();
+        itemWriterAdapter.setTargetObject(studentService);
+        itemWriterAdapter.setTargetMethod("restCallToPostStudents");
+        return itemWriterAdapter;
     }
 }

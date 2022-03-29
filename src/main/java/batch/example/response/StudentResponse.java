@@ -6,9 +6,10 @@ import java.io.Serializable;
 
 @Getter
 @Setter
+@Builder
 @ToString
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class StudentResponse implements Serializable {
     private Long id;
     private String firstName;

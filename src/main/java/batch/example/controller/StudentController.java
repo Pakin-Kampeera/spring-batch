@@ -1,10 +1,11 @@
 package batch.example.controller;
 
+import batch.example.request.StudentRequest;
 import batch.example.response.StudentResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,5 +30,16 @@ public class StudentController {
                 new StudentResponse(9L, "Daune", "Dash", "Daune.Dash@hotmail.com"),
                 new StudentResponse(10L, "Viviene", "O'Carroll", "Viviene.O'Carroll@hotmail.com")
         );
+    }
+
+    @PostMapping("/createStudent")
+    public ResponseEntity<StudentResponse> createStudent(@RequestBody StudentRequest studentRequest) {
+        StudentResponse studentResponse = StudentResponse.builder()
+                                                         .id(studentRequest.getId())
+                                                         .firstName(studentRequest.getFirstName())
+                                                         .lastName(studentRequest.getLastName())
+                                                         .email(studentRequest.getEmail())
+                                                         .build();
+        return new ResponseEntity<>(studentResponse, HttpStatus.OK);
     }
 }
