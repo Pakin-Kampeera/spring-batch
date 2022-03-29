@@ -23,6 +23,8 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.adapter.ItemReaderAdapter;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
@@ -143,15 +145,16 @@ public class SampleBatch {
 
     private Step secondChunkStep() {
         return stepBuilderFactory.get("Second Chunk Step")
-                                 .<StudentJdbc, StudentJdbc>chunk(3)
-//                                 .reader(flatFileItemReader(null))
+                                 .<StudentCsv, StudentCsv>chunk(3)
+                                 .reader(flatFileItemReader(null))
 //                                 .reader(jsonItemReader(null))
 //                                 .reader(studentXmlStaxEventItemReader(null))
 //                                 .reader(jdbcJdbcCursorItemReader())
-                                 .reader(jdbcJdbcCursorItemReader())
+//                                 .reader(jdbcJdbcCursorItemReader())
 //                                 .processor(secondItemProcessor)
 //                                 .writer(flatFileItemWriter(null))
-                                 .writer(staxEventItemWriter(null))
+//                                 .writer(staxEventItemWriter(null))
+                                 .writer(jdbcBatchItemWriter())
                                  .build();
     }
 
@@ -253,5 +256,14 @@ public class SampleBatch {
 
         staxEventItemWriter.setMarshaller(jaxb2Marshaller);
         return staxEventItemWriter;
+    }
+
+    @Bean
+    public JdbcBatchItemWriter<StudentCsv> jdbcBatchItemWriter() {
+        JdbcBatchItemWriter<StudentCsv> jdbcBatchItemWriter = new JdbcBatchItemWriter<>();
+        jdbcBatchItemWriter.setDataSource(dataSource);
+        jdbcBatchItemWriter.setSql("insert into student(id, first_name, last_name, email) values (:id, :firstName, :lastName, :email)");
+        jdbcBatchItemWriter.setItemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>());
+        return jdbcBatchItemWriter;
     }
 }
