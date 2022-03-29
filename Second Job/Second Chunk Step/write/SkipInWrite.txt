@@ -1,0 +1,1 @@
+StudentJson(id=3, firstName=Bill, lastName=Weaks, email=Bill.Weaks@hotmail.com), Wed Mar 30 01:20:32 ICT 2022

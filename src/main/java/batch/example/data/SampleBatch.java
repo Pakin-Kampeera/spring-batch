@@ -2,6 +2,7 @@ package batch.example.data;
 
 import batch.example.listener.FirstJobListener;
 import batch.example.listener.FirstStepListener;
+import batch.example.listener.SkipListener;
 import batch.example.model.StudentCsv;
 import batch.example.model.StudentJdbc;
 import batch.example.model.StudentJson;
@@ -15,16 +16,11 @@ import batch.example.service.StudentService;
 import batch.example.writer.*;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
-import org.springframework.batch.core.step.skip.CompositeSkipPolicy;
-import org.springframework.batch.core.step.skip.LimitCheckingItemSkipPolicy;
-import org.springframework.batch.core.step.skip.NeverSkipItemSkipPolicy;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.adapter.ItemReaderAdapter;
 import org.springframework.batch.item.adapter.ItemWriterAdapter;
@@ -55,6 +51,7 @@ import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
 import javax.sql.DataSource;
 import java.util.Date;
+import java.util.List;
 
 @Configuration
 public class SampleBatch {
@@ -75,8 +72,9 @@ public class SampleBatch {
     private final StudentService studentService;
     private final SecondItemProcessor secondItemProcessor;
     private final DataSource dataSource;
+    private final SkipListener skipListener;
 
-    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, SecondItemProcessor secondItemProcessor, DataSource dataSource) {
+    public SampleBatch(JobBuilderFactory jobBuilderFactory, StepBuilderFactory stepBuilderFactory, SecondTasklet secondTasklet, FirstJobListener firstJobListener, FirstStepListener firstStepListener, FirstItemReader firstItemReader, FirstItemProcessor firstItemProcessor, FirstItemWriter firstItemWriter, SecondItemWriter secondItemWriter, ThirdItemWriter thirdItemWriter, FourthItemWriter fourthItemWriter, FifthItemWriter fifthItemWriter, SixItemWriter sixItemWriter, StudentService studentService, SecondItemProcessor secondItemProcessor, DataSource dataSource, SkipListener skipListener) {
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.secondTasklet = secondTasklet;
@@ -93,6 +91,7 @@ public class SampleBatch {
         this.studentService = studentService;
         this.secondItemProcessor = secondItemProcessor;
         this.dataSource = dataSource;
+        this.skipListener = skipListener;
     }
 
     @Bean
@@ -127,15 +126,12 @@ public class SampleBatch {
     }
 
     private Tasklet firstTask() {
-        return new Tasklet() {
-            @Override
-            public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) throws Exception {
-                System.out.println("This is first tasklet step");
-                System.out.println(chunkContext.getStepContext()
-                                               .getStepExecutionContext()
-                                               .get("lastName"));
-                return RepeatStatus.FINISHED;
-            }
+        return (stepContribution, chunkContext) -> {
+            System.out.println("This is first tasklet step");
+            System.out.println(chunkContext.getStepContext()
+                                           .getStepExecutionContext()
+                                           .get("lastName"));
+            return RepeatStatus.FINISHED;
         };
     }
 
@@ -156,7 +152,7 @@ public class SampleBatch {
 //                                 .reader(studentXmlStaxEventItemReader(null))
 //                                 .reader(jdbcJdbcCursorItemReader())
 //                                 .reader(jdbcJdbcCursorItemReader())
-//                                 .processor(secondItemProcessor)
+                                 .processor(secondItemProcessor)
                                  .writer(jsonJsonFileItemWriter(null))
 //                                 .writer(flatFileItemWriter(null))
 //                                 .writer(staxEventItemWriter(null))
@@ -167,6 +163,7 @@ public class SampleBatch {
                                  .skip(FlatFileParseException.class)
 //                                 .skipLimit(Integer.MAX_VALUE)
                                  .skipPolicy(new AlwaysSkipItemSkipPolicy())
+                                 .listener(skipListener)
                                  .build();
     }
 
@@ -251,7 +248,18 @@ public class SampleBatch {
     @Bean
     @StepScope
     public JsonFileItemWriter<StudentJson> jsonJsonFileItemWriter(@Value("#{jobParameters['outputFile']}") FileSystemResource fileSystemResource) {
-        JsonFileItemWriter<StudentJson> jsonFileItemWriter = new JsonFileItemWriter<>(fileSystemResource, new JacksonJsonObjectMarshaller<>());
+        JsonFileItemWriter<StudentJson> jsonFileItemWriter = new JsonFileItemWriter<>(fileSystemResource, new JacksonJsonObjectMarshaller<>()) {
+            @Override
+            public String doWrite(List<? extends StudentJson> items) {
+                items.stream()
+                     .forEach(item -> {
+                         if (item.getId() == 3) {
+                             throw new NullPointerException();
+                         }
+                     });
+                return super.doWrite(items);
+            }
+        };
         return jsonFileItemWriter;
     }
 
