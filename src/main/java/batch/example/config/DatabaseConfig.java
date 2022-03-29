@@ -13,14 +13,21 @@ public class DatabaseConfig {
     @Bean
     @Primary
     @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource dataSource() {
+    public DataSource datasource() {
         return DataSourceBuilder.create()
                                 .build();
     }
 
     @Bean
     @ConfigurationProperties(prefix = "spring.universitydatasource")
-    public DataSource universityDataSource() {
+    public DataSource universitydatasource() {
+        return DataSourceBuilder.create()
+                                .build();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "spring.postgresdatasource")
+    public DataSource postgresdatasource() {
         return DataSourceBuilder.create()
                                 .build();
     }

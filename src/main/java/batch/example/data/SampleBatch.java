@@ -21,6 +21,10 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
+import org.springframework.batch.core.step.skip.CompositeSkipPolicy;
+import org.springframework.batch.core.step.skip.LimitCheckingItemSkipPolicy;
+import org.springframework.batch.core.step.skip.NeverSkipItemSkipPolicy;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.adapter.ItemReaderAdapter;
 import org.springframework.batch.item.adapter.ItemWriterAdapter;
@@ -29,6 +33,7 @@ import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
@@ -145,18 +150,23 @@ public class SampleBatch {
 
     private Step secondChunkStep() {
         return stepBuilderFactory.get("Second Chunk Step")
-                                 .<StudentCsv, StudentResponse>chunk(3)
+                                 .<StudentCsv, StudentJson>chunk(3)
                                  .reader(flatFileItemReader(null))
 //                                 .reader(jsonItemReader(null))
 //                                 .reader(studentXmlStaxEventItemReader(null))
 //                                 .reader(jdbcJdbcCursorItemReader())
 //                                 .reader(jdbcJdbcCursorItemReader())
 //                                 .processor(secondItemProcessor)
+                                 .writer(jsonJsonFileItemWriter(null))
 //                                 .writer(flatFileItemWriter(null))
 //                                 .writer(staxEventItemWriter(null))
 //                                 .writer(jdbcBatchItemWriter())
 //                                 .writer(jdbcBatchItemWriter1())
-                                 .writer(itemWriterAdapter())
+//                                 .writer(itemWriterAdapter())
+                                 .faultTolerant()
+                                 .skip(FlatFileParseException.class)
+//                                 .skipLimit(Integer.MAX_VALUE)
+                                 .skipPolicy(new AlwaysSkipItemSkipPolicy())
                                  .build();
     }
 
@@ -183,7 +193,6 @@ public class SampleBatch {
     @Bean
     @StepScope
     public JsonItemReader<StudentJson> jsonItemReader(@Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource) {
-        System.out.println(fileSystemResource);
         JsonItemReader<StudentJson> jsonItemReader = new JsonItemReader<>();
         jsonItemReader.setResource(fileSystemResource);
         jsonItemReader.setJsonObjectReader(new JacksonJsonObjectReader<>(StudentJson.class));
