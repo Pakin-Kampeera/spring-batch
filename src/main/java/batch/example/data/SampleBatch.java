@@ -116,6 +116,7 @@ public class SampleBatch {
         return stepBuilderFactory.get("First Step")
                                  .listener(firstStepListener)
                                  .tasklet(firstTask())
+                                 .tasklet(secondTasklet)
                                  .build();
     }
 
@@ -163,6 +164,8 @@ public class SampleBatch {
                                  .skip(FlatFileParseException.class)
 //                                 .skipLimit(Integer.MAX_VALUE)
                                  .skipPolicy(new AlwaysSkipItemSkipPolicy())
+                                 .retry(FlatFileParseException.class)
+                                 .retryLimit(5)
                                  .listener(skipListener)
                                  .build();
     }
@@ -254,6 +257,7 @@ public class SampleBatch {
                 items.stream()
                      .forEach(item -> {
                          if (item.getId() == 3) {
+                             System.out.println("Inside writer exception");
                              throw new NullPointerException();
                          }
                      });
